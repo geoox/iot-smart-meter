@@ -1,0 +1,27 @@
+{
+  "name": "iot-smart-meter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geoox/iot-smart-meter.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/geoox/iot-smart-meter/issues"
+  },
+  "homepage": "https://github.com/geoox/iot-smart-meter#readme",
+  "dependencies": {
+    "base64-arraybuffer": "^0.2.0",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "mongoose": "^5.9.9",
+    "mqtt": "^3.0.0"
+  }
+}
