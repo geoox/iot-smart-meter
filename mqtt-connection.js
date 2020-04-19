@@ -47,6 +47,7 @@ client.on("message", function (topic, message) {
     meter_id: parseInt(meterId, 2),
     reading: parseInt(reading, 2),
     timestamp: parseInt(timestamp, 2),
+    type: measurementType,
   };
 
   // send to server:

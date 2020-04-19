@@ -1,10 +1,11 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
 const MeterDataSchema = mongoose.Schema({
-    data_id: mongoose.Schema.Types.ObjectId,
-    reading: String,
-    meter_id: String,
-    timestamp: String
-})
+  data_id: mongoose.Schema.Types.ObjectId,
+  reading: String,
+  meter_id: String,
+  timestamp: String,
+  type: Number,
+});
 
-module.exports = mongoose.model('MeterData', MeterDataSchema)
+module.exports = mongoose.model("MeterData", MeterDataSchema);
