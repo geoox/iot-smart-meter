@@ -1,36 +1,61 @@
-var mqtt = require('mqtt')
-var base64 = require('base64-arraybuffer')
+var mqtt = require("mqtt");
+var hexToBinary = require("hex-to-binary");
+var atob = require("atob");
+var axios = require("axios");
 
-var client  = mqtt.connect('mqtts://influx.itu.dk', {
-  username: 'smartreader',
-  password: '4mp3r3h0ur',
+var client = mqtt.connect("mqtts://influx.itu.dk", {
+  username: "smartreader",
+  password: "4mp3r3h0ur",
   port: 8883,
-  rejectUnauthorized : false
-})
- 
-client.on('connect', function () {
-  console.log('CONNECTED')
-  client.subscribe('IoT2020sec/meters', function (err) {
-    console.log('SUBSCRIBED')
-  })
-})
- 
-client.on('message', function (topic, message) {
+  rejectUnauthorized: false,
+});
 
+client.on("connect", function () {
+  console.log("CONNECTED");
+  client.subscribe("IoT2020sec/meters", function (err) {
+    console.log("SUBSCRIBED");
+  });
+});
+
+client.on("message", function (topic, message) {
   const base64Message = message.toString();
+  const bin = atob(base64Message);
 
-  // available as array buffer
-  const binaryMessage = base64.decode(base64Message);
+  // copy pasted from web, might need to quote it..
+  let hexString = "";
+  for (let i = 0; i < bin.length; i++) {
+    const hex = bin.charCodeAt(i).toString(16);
+    hexString += hex.length === 2 ? hex : "0" + hex;
+  }
+  console.log("hexString: " + hexString);
+  const binaryMessage = hexToBinary(hexString);
+  console.log("binary: " + binaryMessage);
 
-  const meterId = binaryMessage.slice(0,1);
-  const timestamp = binaryMessage.slice(1,4);
-  const reading = binaryMessage.slice(4,6);
+  const measurementType = binaryMessage.slice(0, 1);
+  const meterId = binaryMessage.slice(1, 8);
+  const timestamp = binaryMessage.slice(8, 40);
+  const reading = binaryMessage.slice(40, 56);
 
-  //TODO: transform from array buffer to binary bytes ..... or find a way to transform directly base64->binary
-  
-  console.log("Base64: " + base64Message);
-  console.dir(binaryMessage, {depth: null});
-  console.log("\n");
-})
+  // console.log("Base64: " + base64Message);
+  // console.log("measurement type: " + measurementType);
+  // console.log("meterId: " + meterId + " ... " + parseInt(meterId, 2));
+  // console.log("timestamp: " + timestamp + " ... " + parseInt(timestamp, 2));
+  // console.log("reading: " + reading + " ... " + parseInt(reading, 2));
+  // console.log("---------------------------");
 
-client.on("error",function(error){ console.log("Can't connect"+error)});
+  const req = {
+    meter_id: parseInt(meterId, 2),
+    reading: parseInt(reading, 2),
+    timestamp: parseInt(timestamp, 2),
+  };
+
+  // send to server:
+  const API_URL = "https://iot-smart-meter.herokuapp.com/new_recording";
+  axios.post(API_URL, req).then((response) => {
+    console.log(response);
+  });
+});
+
+client.on("error", function (error) {
+  console.log("Can't connect" + error);
+});
