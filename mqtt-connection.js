@@ -33,24 +33,18 @@ client.on("message", function (topic, message) {
 
   const measurementType = binaryMessage.slice(0, 1);
   const meterId = binaryMessage.slice(1, 8);
-  const timestamp = binaryMessage.slice(8, 40);
+  const timestamp_binary = binaryMessage.slice(8, 40);
   const reading = binaryMessage.slice(40, 56);
 
-  // console.log("Base64: " + base64Message);
-  // console.log("measurement type: " + measurementType);
-  // console.log("meterId: " + meterId + " ... " + parseInt(meterId, 2));
-  // console.log("timestamp: " + timestamp + " ... " + parseInt(timestamp, 2));
-  // console.log("reading: " + reading + " ... " + parseInt(reading, 2));
-  // console.log("---------------------------");
+  const timestamp = new Date(parseInt(timestamp_binary, 2) * 1000);
 
   const req = {
     meter_id: parseInt(meterId, 2),
     reading: parseInt(reading, 2),
-    timestamp: parseInt(timestamp, 2),
+    timestamp: timestamp,
     type: measurementType,
   };
 
-  // send to server:
   const API_URL = "https://iot-smart-meter.herokuapp.com/new_recording";
   axios.post(API_URL, req).then((response) => {
     console.log(response);
