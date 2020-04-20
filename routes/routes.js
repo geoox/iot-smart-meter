@@ -68,7 +68,10 @@ router.get("/real_data/:house_id", async (req, res, next) => {
 
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  const dataCount = await MeterData.countDocuments();
+  const dataCount = await MeterData.countDocuments({
+    type: 0,
+    meter_id: req.params.house_id
+  });
   const pageCount = Math.ceil(dataCount / pageSize);
 
   let page = parseInt(req.query.p);
@@ -100,7 +103,10 @@ router.get("/fake_data/:house_id", async (req, res, next) => {
 
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  const dataCount = await MeterData.countDocuments();
+  const dataCount = await MeterData.countDocuments({
+    type: 1,
+    meter_id: req.params.house_id
+  });
   const pageCount = Math.ceil(dataCount / pageSize);
 
   let page = parseInt(req.query.p);
@@ -134,7 +140,9 @@ router.get("/real_data", async (req, res, next) => {
 
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  const dataCount = await MeterData.countDocuments();
+  const dataCount = await MeterData.countDocuments({
+    type: 0
+  });
   const pageCount = Math.ceil(dataCount / pageSize);
 
   let page = parseInt(req.query.p);
@@ -162,7 +170,9 @@ router.get("/real_data", async (req, res, next) => {
 router.get("/fake_data", async (req,res,next) => {
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  const dataCount = await MeterData.countDocuments();
+  const dataCount = await MeterData.countDocuments({
+    type: 1
+  });
   const pageCount = Math.ceil(dataCount / pageSize);
 
   let page = parseInt(req.query.p);
