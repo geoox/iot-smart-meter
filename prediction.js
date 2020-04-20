@@ -1,24 +1,24 @@
-const express = require("express");
-const router = express.Router();
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const jwt = require('jsonwebtoken');
-//const checkAuth = require('../middleware/check-auth');
+const tf = require('@tensorflow/tfjs');
+const fetch = require("node-fetch");
 
-// const MeterData = require("../models/meter_data");
-// const User = require("../models/user");
+const trainX = []; //timestamp
+const trainY = []; // readings
 
-const tf = require('@tensorflow/tfjs')
+function getFakeData(){
+  fetch('https://iot-smart-meter.herokuapp.com/fake_data?size=100')
+  .then(res => res.json())
+  .then(readings => {
+    // console.log(readings);
+    readings.data.forEach(reading => {
+      trainX.push(reading.reading);
+      trainY.push(reading.timestamp);
+    })
+  })
+  .catch(err => console.log(err));
+}
 
-
-const dbPassword = 'admin'
-//mongoose.connect('mongodb+srv://admin:' + dbPassword + '@cluster0-igo28.mongodb.net/test?retryWrites=true&w=majority',{ useNewUrlParser: true, useUnifiedTopology: true });
-
-const trainX = [3.3, 4.4, 5.5, 6.71, 6.93, 4.168, 9.779, 6.182, 7.59, 2.167, 7.042, 10.791, 5.313, 7.997, 5.654, 9.27, 3.1]; //timestamp
-const trainY = [1.7, 2.76, 2.09, 3.19, 1.694, 1.573, 3.366, 2.596, 2.53, 1.221, 2.827, 3.465, 1.65, 2.904, 2.42, 2.94, 1.3]; //reading
-
-
-
+// const trainX = [3.3, 4.4, 5.5, 6.71, 6.93, 4.168, 9.779, 6.182, 7.59, 2.167, 7.042, 10.791, 5.313, 7.997, 5.654, 9.27, 3.1]; //timestamp
+// const trainY = [1.7, 2.76, 2.09, 3.19, 1.694, 1.573, 3.366, 2.596, 2.53, 1.221, 2.827, 3.465, 1.65, 2.904, 2.42, 2.94, 1.3]; //reading
 const m = tf.variable(tf.scalar(Math.random()));
 const b = tf.variable(tf.scalar(Math.random()));
 
@@ -49,7 +49,14 @@ function train() {
   });
   //plot();
 }
-const predictionsBefore = predict(tf.tensor1d(trainX));
-for (i = 0; i < 7; i++) {
+
+async function processData(){
+  await getFakeData();
+  for (i = 0; i < 7; i++) {
     train();    //train multiple times
   }
+}
+
+const predictionsBefore = predict(tf.tensor1d(trainX));
+processData();
+
