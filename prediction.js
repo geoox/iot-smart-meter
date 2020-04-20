@@ -3,13 +3,13 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
-const checkAuth = require('../middleware/check-auth');
+//const checkAuth = require('../middleware/check-auth');
 
-const MeterData = require("../models/meter_data");
-const User = require("../models/user");
+// const MeterData = require("../models/meter_data");
+// const User = require("../models/user");
 
-import * as tf from '@tensorflow/tfjs';
-app.use(cors());
+const tf = require('@tensorflow/tfjs')
+
 
 const dbPassword = 'admin'
 //mongoose.connect('mongodb+srv://admin:' + dbPassword + '@cluster0-igo28.mongodb.net/test?retryWrites=true&w=majority',{ useNewUrlParser: true, useUnifiedTopology: true });
@@ -47,68 +47,9 @@ function train() {
     console.log(stepLoss.dataSync()[0]);
     return stepLoss;
   });
-  plot();
+  //plot();
 }
 const predictionsBefore = predict(tf.tensor1d(trainX));
-
-async function plot() {
-    let plotData = [];
-  
-    for (let i = 0; i < trainY.length; i++) {
-      plotData.push({ x: trainX[i], y: trainY[i] });
-    }
-  
-    var ctx = document.getElementById("myChart").getContext("2d");
-  
-    var scatterChart = new Chart(ctx, {
-      type: "line",
-      data: {
-        datasets: [
-          {
-            label: "Training Data",
-            showLine: false,
-            data: plotData,
-            fill: false
-          },
-          {
-            label: "Y = " + m.dataSync()[0] + "X + " + b.dataSync()[0],
-            data: [
-              {
-                x: 0,
-                y: b.dataSync()[0]
-              },
-              {
-                x: 11,
-                y: 11 * m.dataSync()[0] + b.dataSync()[0]
-              }
-            ],
-  
-            // Changes this dataset to become a line
-            type: "line",
-            borderColor: "red",
-            fill: false
-          }
-        ]
-      },
-      options: {
-        animation: false,
-        scales: {
-            yAxes: [
-             {
-                ticks: {
-                  max: 5
-                }
-              }
-            ],
-          xAxes: [
-            {
-              type: "linear",
-              position: "bottom"
-            }
-          ]
-        }
-      }
-    });
+for (i = 0; i < 7; i++) {
+    train();    //train multiple times
   }
-  plot();
-
