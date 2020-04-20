@@ -5,16 +5,20 @@ const trainX = []; //timestamp
 const trainY = []; // readings
 
 function getFakeData(){
-  fetch('https://iot-smart-meter.herokuapp.com/fake_data?size=100')
-  .then(res => res.json())
-  .then(readings => {
-    // console.log(readings);
-    readings.data.forEach(reading => {
-      trainX.push(reading.reading);
-      trainY.push(reading.timestamp);
-    })
-  })
-  .catch(err => console.log(err));
+    return new Promise(async (resolve, reject) => {
+      const elements = await fetch('https://iot-smart-meter.herokuapp.com/fake_data?size=100');
+      const resp = await elements.json();
+      const readings = resp.data;
+    
+      readings.forEach(reading => {
+        trainX.push(reading.timestamp);
+        trainY.push(reading.reading);
+        if(reading == readings[readings.length-1]){
+          // last element 
+          resolve();
+        }
+    });
+  });
 }
 
 // const trainX = [3.3, 4.4, 5.5, 6.71, 6.93, 4.168, 9.779, 6.182, 7.59, 2.167, 7.042, 10.791, 5.313, 7.997, 5.654, 9.27, 3.1]; //timestamp
@@ -52,6 +56,8 @@ function train() {
 
 async function processData(){
   await getFakeData();
+  console.log('trainX', trainX);
+  console.log('trainY', trainY);
   for (i = 0; i < 7; i++) {
     train();    //train multiple times
   }
