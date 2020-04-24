@@ -15,6 +15,9 @@ router.get("/hello", (req, res, next) => {
 });
 
 router.post("/new_recording", (req, res, next) => {
+
+  //TODO: add security key before post
+
   const newRecording = new MeterData({
     reading: req.body.reading,
     meter_id: req.body.meter_id,
@@ -31,8 +34,6 @@ router.post("/new_recording", (req, res, next) => {
 });
 
 router.get("/data", checkAuth, async (req, res, next) => {
-
-  if(req.userData.user_role == 'supplier') {
 
     const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
@@ -58,17 +59,16 @@ router.get("/data", checkAuth, async (req, res, next) => {
       })
       .catch((err) => res.status(500).json(err));
 
-  } else {
-    return res.status(401).json({message: "Unauthorized"})
-  }
-
 });
 
 router.get("/real_data/:house_id", async (req, res, next) => {
 
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  const dataCount = await MeterData.countDocuments();
+  const dataCount = await MeterData.countDocuments({
+    type: 0,
+    meter_id: req.params.house_id
+  });
   const pageCount = Math.ceil(dataCount / pageSize);
 
   let page = parseInt(req.query.p);
@@ -100,7 +100,10 @@ router.get("/fake_data/:house_id", async (req, res, next) => {
 
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  const dataCount = await MeterData.countDocuments();
+  const dataCount = await MeterData.countDocuments({
+    type: 1,
+    meter_id: req.params.house_id
+  });
   const pageCount = Math.ceil(dataCount / pageSize);
 
   let page = parseInt(req.query.p);
@@ -128,41 +131,117 @@ router.get("/fake_data/:house_id", async (req, res, next) => {
     .catch((err) => res.status(500).json(err));
 });
 
-router.get("/real_data", async (req, res, next) => {
+router.get("/real_data", checkAuth, async (req, res, next) => {
 
   console.log("User data", req.userData);
 
-  const pageSize = req.query.size ? parseInt(req.query.size) : 10;
+  if(req.userData.user_role == 'customer'){
 
-  const dataCount = await MeterData.countDocuments();
-  const pageCount = Math.ceil(dataCount / pageSize);
+    const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  let page = parseInt(req.query.p);
-  if (!page) { page = 1;}
-  if (page > pageCount) {
-      page = pageCount
-  }
-
-  MeterData.find({
-    "type": 0
-  })
-  .sort({ timestamp : -1 })
-  .skip(pageSize*(page-1))
-  .limit(pageSize)
-  .then((data) => {
-    res.status(200).json({
-      "page": page,
-      "pageCount": pageCount,
-      "data": data
+    const dataCount = await MeterData.countDocuments({
+      type: 0,
+      meter_id: req.userData.houses_id[0]
     });
-  })
-  .catch((err) => res.status(500).json(err));
+
+    const pageCount = Math.ceil(dataCount / pageSize);
+    let page = parseInt(req.query.p);
+    if (!page) { page = 1;}
+    if (page > pageCount) {
+        page = pageCount
+    }
+
+    MeterData.find({
+      "type": 0,
+      "meter_id": req.userData.houses_id[0]
+    })
+    .sort({ timestamp : -1 })
+    .skip(pageSize*(page-1))
+    .limit(pageSize)
+    .then((data) => {
+      res.status(200).json({
+        "page": page,
+        "pageCount": pageCount,
+        "data": data
+      });
+    })
+    .catch((err) => res.status(500).json(err));
+
+  } else if(req.userData.user_role == 'admin'){
+
+    const pageSize = req.query.size ? parseInt(req.query.size) : 10;
+
+    const dataCount = await MeterData.countDocuments({
+      type: 0,
+      meter_id:{
+        $in: req.userData.houses_id
+      }
+    });
+
+    const pageCount = Math.ceil(dataCount / pageSize);
+    let page = parseInt(req.query.p);
+    if (!page) { page = 1;}
+    if (page > pageCount) {
+        page = pageCount
+    }
+
+    MeterData.find({
+      type: 0,
+      meter_id:{
+        $in: req.userData.houses_id
+      }
+    })
+    .sort({ timestamp : -1 })
+    .skip(pageSize*(page-1))
+    .limit(pageSize)
+    .then((data) => {
+      res.status(200).json({
+        "page": page,
+        "pageCount": pageCount,
+        "data": data
+      });
+    })
+    .catch((err) => res.status(500).json(err));
+
+  } else if(req.userData.user_role == 'supplier'){
+
+    const dataCount = await MeterData.countDocuments({
+      type: 0
+    });
+    const pageCount = Math.ceil(dataCount / pageSize);
+  
+    let page = parseInt(req.query.p);
+    if (!page) { page = 1;}
+    if (page > pageCount) {
+        page = pageCount
+    }
+
+    MeterData.find({
+      "type": 0
+    })
+    .sort({ timestamp : -1 })
+    .skip(pageSize*(page-1))
+    .limit(pageSize)
+    .then((data) => {
+      res.status(200).json({
+        "page": page,
+        "pageCount": pageCount,
+        "data": data
+      });
+    })
+    .catch((err) => res.status(500).json(err));
+  } else {
+    return res.status(401).json({message: "Unauthorized"})
+  }
+  
 })
 
 router.get("/fake_data", async (req,res,next) => {
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  const dataCount = await MeterData.countDocuments();
+  const dataCount = await MeterData.countDocuments({
+    type: 1
+  });
   const pageCount = Math.ceil(dataCount / pageSize);
 
   let page = parseInt(req.query.p);
@@ -209,7 +288,8 @@ router.post('/register', (req, res, next) => {
                       _id: new mongoose.Types.ObjectId(),
                       username: req.body.username,
                       password: hash,
-                      user_role: req.body.user_role
+                      user_role: req.body.user_role,
+                      houses_id: req.body.houses_id
                   })
                   newUser.save()
                   .then(result => {
@@ -227,7 +307,6 @@ router.post('/register', (req, res, next) => {
       }
   })
 })
-
 
 router.post('/login', (req, res, next) => {
   const username = req.body.username;
@@ -251,7 +330,8 @@ router.post('/login', (req, res, next) => {
                       const token = jwt.sign({
                           _id: user._id,
                           username: user.username,
-                          user_role: user.user_role
+                          user_role: user.user_role,
+                          houses_id: user.houses_id
                       }, "jwt_pw", {
                           expiresIn:"1h"
                       })
