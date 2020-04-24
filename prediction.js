@@ -1,19 +1,38 @@
-const tf = require('@tensorflow/tfjs');
 const fetch = require("node-fetch");
+const express = require("express");
 
-const trainX = []; //timestamp
-const trainY = []; // readings
+const ts = require("timeseries-analysis");
+const mongoose = require("mongoose");
+const MeterData = require("./models/meter_data");
+
+var dictionary =[]
+var trueYs=[];
+
+function processData(){
+  MeterData.find({
+      "type": 0
+    })
+    .sort({ timestamp : -1 })
+    .then(data => {
+       console.log(data);
+    })
+
+}
+ 
 
 function getFakeData(){
     return new Promise(async (resolve, reject) => {
       const elements = await fetch('https://iot-smart-meter.herokuapp.com/fake_data?size=100');
+     
       const resp = await elements.json();
       const readings = resp.data;
     
       readings.forEach(reading => {
-        trainX.push(reading.timestamp);
-        trainY.push(reading.reading);
+        trueYs.push(reading.reading);
+        dictionary.push([reading.timestamp,reading.reading]);
+        dictionary=dictionary.reverse();
         if(reading == readings[readings.length-1]){
+        
           // last element 
           resolve();
         }
@@ -21,48 +40,37 @@ function getFakeData(){
   });
 }
 
-// const trainX = [3.3, 4.4, 5.5, 6.71, 6.93, 4.168, 9.779, 6.182, 7.59, 2.167, 7.042, 10.791, 5.313, 7.997, 5.654, 9.27, 3.1]; //timestamp
-// const trainY = [1.7, 2.76, 2.09, 3.19, 1.694, 1.573, 3.366, 2.596, 2.53, 1.221, 2.827, 3.465, 1.65, 2.904, 2.42, 2.94, 1.3]; //reading
-const m = tf.variable(tf.scalar(Math.random()));
-const b = tf.variable(tf.scalar(Math.random()));
+/*async function processData(){
+  
+  
+// var t     = new ts.main(ts.adapter.fromArray(trueYs));
 
-function predict(x) {
-  return tf.tidy(function() {
-    return m.mul(x).add(b);
-  });
+var t     = new ts.main(ts.adapter.fromDB(data, {
+  date:   'timestamp',     // Name of the property containing the Date (must be compatible with new Date(date) )
+  value:  'reading'     // Name of the property containign the value. here we'll use the "close" price.
+}));
+// The sin wave
+//t     	= new ts.main(ts.adapter.sin({cycles:4}));
+
+
+var coeffs = t.ARMaxEntropy({
+    data:	t.data
+});
+console.log(t.data);
+
+// Output the coefficients to the console
+console.log(coeffs);
+
+
+var forecast	= 0;	// Init the value at 0.
+for (var i=0;i<coeffs.length;i++) {	// Loop through the coefficients
+    forecast -= t.data[t.data.length-1-i][1]*coeffs[i];
+    // Explanation for that line:
+    // t.data contains the current dataset, which is in the format [ [date, value], [date,value], ... ]
+    // For each coefficient, we substract from "forecast" the value of the "N - x" datapoint's value, multiplicated by the coefficient, where N is the last known datapoint value, and x is the coefficient's index.
 }
-
-function loss(prediction, labels) {
-  //subtracts the two arrays & squares each element of the tensor then finds the mean.
-  const error = prediction
-    .sub(labels)
-    .square()
-    .mean();
-  return error;
 }
-function train() {
-  const learningRate = 0.005;
-  const optimizer = tf.train.sgd(learningRate);
+*/
 
-  optimizer.minimize(function() {
-    const predsYs = predict(tf.tensor1d(trainX));
-    console.log(predsYs);
-    stepLoss = loss(predsYs, tf.tensor1d(trainY));
-    console.log(stepLoss.dataSync()[0]);
-    return stepLoss;
-  });
-  //plot();
-}
-
-async function processData(){
-  await getFakeData();
-  console.log('trainX', trainX);
-  console.log('trainY', trainY);
-  for (i = 0; i < 7; i++) {
-    train();    //train multiple times
-  }
-}
-
-const predictionsBefore = predict(tf.tensor1d(trainX));
 processData();
-
+// Constructed using NPM Package "TimeSeries Analysis" and the respective documentation. Source: https://www.npmjs.com/package/timeseries-analysis
