@@ -1,22 +1,39 @@
 const fetch = require("node-fetch");
 const express = require("express");
-
-const ts = require("timeseries-analysis");
+const app = express();
 const mongoose = require("mongoose");
+const bodyParser = require("body-parser");
 const MeterData = require("./models/meter_data");
 
 var dictionary =[]
 var trueYs=[];
 
-function processData(){
-  MeterData.find({
-      "type": 0
-    })
-    .sort({ timestamp : -1 })
-    .then(data => {
-       console.log(data);
-    })
 
+//connect to db
+const dbPassword = 'admin'
+mongoose.connect('mongodb+srv://admin:' + dbPassword + '@cluster0-igo28.mongodb.net/test?retryWrites=true&w=majority',{ useNewUrlParser: true, useUnifiedTopology: true });
+
+let port = process.env.PORT || 8060;
+
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
+
+app.listen(port, ()=> console.log("Listening to 8060..."));
+
+function getRealData(){
+  return new Promise(async (resolve, reject) => {
+      const data = await MeterData.find({
+          "type": 0
+        })
+        .sort({ timestamp : -1 });
+        resolve(data);
+  })
+
+}
+
+async function processData(){
+  const data = await getRealData();
+  console.log(data);
 }
  
 
