@@ -202,6 +202,7 @@ router.get("/real_data", checkAuth, async (req, res, next) => {
       })
       .catch((err) => res.status(500).json(err));
   } else if (req.userData.user_role == "supplier") {
+    const pageSize = req.query.size ? parseInt(req.query.size) : 10;
     const dataCount = await MeterData.countDocuments({
       type: 0,
     });
