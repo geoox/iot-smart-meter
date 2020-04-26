@@ -19,7 +19,8 @@ const corsWhitelist = [
     'http://localhost:8070/',
     'http://localhost:8100/',
     'http://localhost:3000/',
-    'http://localhost:8080/'
+    'http://localhost:8080/',
+    'https://iot2020-smart-meter.herokuapp.com/'
 ]
 
 app.use((req, res, next)=>{
