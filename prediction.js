@@ -4,9 +4,8 @@ const app = express();
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const MeterData = require("./models/meter_data");
+const ts = require('timeseries-analysis');
 
-var dictionary =[]
-var trueYs=[];
 
 
 //connect to db
@@ -20,21 +19,30 @@ app.use(bodyParser.json());
 
 app.listen(port, ()=> console.log("Listening to 8060..."));
 
-function getRealData(){
+function getRealData(meter_id){ //meter_id -1 returns all data
   return new Promise(async (resolve, reject) => {
+    if(meter_id != -1){
       const data = await MeterData.find({
-          "type": 0
+        "type": 0,
+        "meter_id":meter_id
+    
+      })
+      .sort({ timestamp : -1 });
+      resolve(data);
+    }
+      else{
+        const data = await MeterData.find({
+          "type": 0,
+      
         })
         .sort({ timestamp : -1 });
         resolve(data);
+      }
   })
 
 }
 
-async function processData(){
-  const data = await getRealData();
-  console.log(data);
-}
+
  
 
 function getFakeData(){
@@ -57,37 +65,56 @@ function getFakeData(){
   });
 }
 
-/*async function processData(){
+async function processData(meter_id){
+  const data = await getRealData(meter_id);
   
-  
-// var t     = new ts.main(ts.adapter.fromArray(trueYs));
+
 
 var t     = new ts.main(ts.adapter.fromDB(data, {
   date:   'timestamp',     // Name of the property containing the Date (must be compatible with new Date(date) )
   value:  'reading'     // Name of the property containign the value. here we'll use the "close" price.
 }));
-// The sin wave
-//t     	= new ts.main(ts.adapter.sin({cycles:4}));
 
 
-var coeffs = t.ARMaxEntropy({
-    data:	t.data
-});
-console.log(t.data);
+// t.smoother({period:4}).save('smoothed'); //Remove noise from the data?
+//get forecast array
+var forecast_data     = new ts.main(ts.adapter.fromDB(data, {
+  date:   'timestamp',     
+  value:  'reading'     
+}));
+var fc_results =[]; //array that will contain the forecasted values
+const forecast_batch_size=10; //desired forecasting iterations ; gets more innacurate the greater the prediction number
 
-// Output the coefficients to the console
-console.log(coeffs);
+for(var j=0;j<forecast_batch_size;j++){
+  
+  var coeffs = t.ARMaxEntropy({
+    data:	forecast_data.data
+  
 
-
-var forecast	= 0;	// Init the value at 0.
-for (var i=0;i<coeffs.length;i++) {	// Loop through the coefficients
-    forecast -= t.data[t.data.length-1-i][1]*coeffs[i];
-    // Explanation for that line:
-    // t.data contains the current dataset, which is in the format [ [date, value], [date,value], ... ]
-    // For each coefficient, we substract from "forecast" the value of the "N - x" datapoint's value, multiplicated by the coefficient, where N is the last known datapoint value, and x is the coefficient's index.
+  });
+  var forecast	= 0;	// Init the value at 0.
+  for (var i=0;i<coeffs.length;i++) {	// Loop through the coefficients
+      forecast -= forecast_data.data[forecast_data.data.length-1-i][1]*coeffs[i];
+      
+  }
+  fc_results.push(forecast);
+  forecast_data.data.push([new Date(),forecast]);
+  console.log(forecast_data.data.length, "data size")
 }
-}
-*/
+console.log("forecast:",fc_results)
 
-processData();
+
+
+var output=t.sliding_regression_forecast({sample:Math.round(t.data.length*3/4) , degree: 5}).output();
+output.forEach(x=> {
+  if(x[1]<0) x[1]= x[1]*(-1);}
+  );
+var chart_url = t.chart({main:true,points:[{color:'ff0000',point:t.data.length*3/4 + 1,serie:0}]});
+
+
+
+}
+
+
+processData(3);
 // Constructed using NPM Package "TimeSeries Analysis" and the respective documentation. Source: https://www.npmjs.com/package/timeseries-analysis
