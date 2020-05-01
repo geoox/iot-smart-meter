@@ -65,15 +65,18 @@ router.get("/data", checkAuth, async (req, res, next) => {
 router.get("/real_data/:house_id", checkAuth, async (req, res, next) => {
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
+  var containsHouse = false;
+  for (var i = 0; i < req.userData.houses_id.length; i++) {
+    if (req.userData.houses_id[i] == req.params.house_id) {
+      containsHouse = true;
+      break;
+    }
+  }
+
   if (
-    !req.userData.user_role == "supplier" &&
-    !(
-      req.userData.user_role == "admin" &&
-      req.userData.houses_id.includes(req.params.house_id)
-    )
+    req.userData.user_role == "supplier" ||
+    (req.userData.user_role == "admin" && containsHouse)
   ) {
-    return res.status(401).json({ message: "Unauthorized" });
-  } else {
     const dataCount = await MeterData.countDocuments({
       type: 0,
       meter_id: req.params.house_id,
@@ -103,6 +106,8 @@ router.get("/real_data/:house_id", checkAuth, async (req, res, next) => {
         });
       })
       .catch((err) => res.status(500).json(err));
+  } else {
+    return res.status(401).json({ message: "Unauthorized" });
   }
 });
 
