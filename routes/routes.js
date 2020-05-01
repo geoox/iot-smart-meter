@@ -354,4 +354,35 @@ router.post("/login", (req, res, next) => {
     });
 });
 
+router.get("/cooperative", checkAuth, async (req, res, next) => {
+  if (req.userData.user_role == "admin") {
+    return res.status(200).json(req.userData.houses_id);
+  }
+  return res.status(401).json({ message: "Unauthorized" });
+});
+
+router.get("/admin", checkAuth, async (req, res, next) => {
+  if (req.userData.user_role != "supplier") {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  User.find({
+    user_role: "admin",
+  })
+    .then((data) => {
+      var response_data = [];
+      data.forEach((user_admin) => {
+        response_data.push({
+          username: user_admin.username,
+          _id: user_admin._id,
+          houses_id: user_admin.houses_id,
+          user_role: user_admin.user_role,
+        });
+      });
+      res.status(200).json({
+        data: response_data,
+      });
+    })
+    .catch((err) => res.status(500).json(err));
+});
+
 module.exports = router;
