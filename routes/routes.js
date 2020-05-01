@@ -62,38 +62,52 @@ router.get("/data", checkAuth, async (req, res, next) => {
     .catch((err) => res.status(500).json(err));
 });
 
-router.get("/real_data/:house_id", async (req, res, next) => {
+router.get("/real_data/:house_id", checkAuth, async (req, res, next) => {
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  const dataCount = await MeterData.countDocuments({
-    type: 0,
-    meter_id: req.params.house_id,
-  });
-  const pageCount = Math.ceil(dataCount / pageSize);
+  /*eslint-disable no-console*/
+  console.log(req.params.house_id);
+  /*eslint-enable no-console*/
 
-  let page = parseInt(req.query.p);
-  if (!page) {
-    page = 1;
-  }
-  if (page > pageCount) {
-    page = pageCount;
-  }
+  if (
+    !req.userData.user_role == "supplier" &&
+    !(
+      req.userData.user_role == "admin" &&
+      req.userData.houses_id.includes(req.params.house_id)
+    )
+  ) {
+    return res.status(401).json({ message: "Unauthorized" });
+  } else {
+    const dataCount = await MeterData.countDocuments({
+      type: 0,
+      meter_id: req.params.house_id,
+    });
 
-  MeterData.find({
-    meter_id: req.params.house_id,
-    type: 0,
-  })
-    .sort({ timestamp: -1 })
-    .skip(pageSize * (page - 1))
-    .limit(pageSize)
-    .then((data) => {
-      res.status(200).json({
-        page: page,
-        pageCount: pageCount,
-        data: data,
-      });
+    const pageCount = Math.ceil(dataCount / pageSize);
+    let page = parseInt(req.query.p);
+    if (!page) {
+      page = 1;
+    }
+    if (page > pageCount) {
+      page = pageCount;
+    }
+
+    MeterData.find({
+      type: 0,
+      meter_id: req.params.house_id,
     })
-    .catch((err) => res.status(500).json(err));
+      .sort({ timestamp: -1 })
+      .skip(pageSize * (page - 1))
+      .limit(pageSize)
+      .then((data) => {
+        res.status(200).json({
+          page: page,
+          pageCount: pageCount,
+          data: data,
+        });
+      })
+      .catch((err) => res.status(500).json(err));
+  }
 });
 
 router.get("/fake_data/:house_id", async (req, res, next) => {
