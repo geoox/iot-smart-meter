@@ -65,10 +65,6 @@ router.get("/data", checkAuth, async (req, res, next) => {
 router.get("/real_data/:house_id", checkAuth, async (req, res, next) => {
   const pageSize = req.query.size ? parseInt(req.query.size) : 10;
 
-  /*eslint-disable no-console*/
-  console.log(req.params.house_id);
-  /*eslint-enable no-console*/
-
   if (
     !req.userData.user_role == "supplier" &&
     !(
