@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
 const checkAuth = require('../middleware/check-auth');
-
+const ts = require('timeseries-analysis');
 const MeterData = require("../models/meter_data");
 const User = require("../models/user");
 
@@ -92,6 +92,69 @@ router.get("/real_data/:house_id", async (req, res, next) => {
         "pageCount": pageCount,
         "data": data
       });
+    })
+    .catch((err) => res.status(500).json(err));
+});
+
+router.get("/prediction/:house_id", async (req, res, next) => {
+
+  const pageSize = req.query.size ? parseInt(req.query.size) : 10;
+
+  const dataCount = await MeterData.countDocuments({
+    type: 0,
+    meter_id: req.params.house_id
+  });
+  const pageCount = Math.ceil(dataCount / pageSize);
+
+  let page = parseInt(req.query.p);
+  if (!page) { page = 1;}
+  if (page > pageCount) {
+      page = pageCount
+  }
+
+  MeterData.find(
+    {
+      "meter_id": req.params.house_id,
+      "type": 0
+    }
+  )
+    .sort({ timestamp : -1 })
+    .skip(pageSize*(page-1))
+    .limit(pageSize)
+    .then((data) => {
+      //get forecast array
+      var forecast_data     = new ts.main(ts.adapter.fromDB(data, {
+        date:   'timestamp',     
+        value:  'reading'     
+      }));
+     
+      forecast_data.smoother({period:4}).save('smoothed'); //Remove noise from the data
+      var fc_results =[]; //array that will contain the forecasted values
+      var forecast_batch_size=req.query.size; //desired forecasting iterations ; gets more innacurate the greater the prediction number
+      
+      for(var j=0;j<forecast_batch_size;j++){
+        
+        var coeffs = forecast_data.ARMaxEntropy({
+          data:	forecast_data.data
+        
+      
+        });
+        var forecast	= 0;	// Init the value at 0.
+        for (var i=0;i<coeffs.length;i++) {	// Loop through the coefficients
+            forecast -= forecast_data.data[forecast_data.data.length-1-i][1]*coeffs[i];
+            
+        }
+        fc_results.push(forecast);
+        forecast_data.data.push([new Date(),forecast]);
+        
+        console.log("forecast:",fc_results);
+      }
+      res.status(200).json({
+        "page": page,
+        "pageCount": pageCount,
+        "data": fc_results 
+      });
+    
     })
     .catch((err) => res.status(500).json(err));
 });
