@@ -98,20 +98,6 @@ router.get("/real_data/:house_id", async (req, res, next) => {
 
 router.get("/prediction/:house_id", async (req, res, next) => {
 
-  const pageSize = req.query.size ? parseInt(req.query.size) : 10;
-
-  const dataCount = await MeterData.countDocuments({
-    type: 0,
-    meter_id: req.params.house_id
-  });
-  const pageCount = Math.ceil(dataCount / pageSize);
-
-  let page = parseInt(req.query.p);
-  if (!page) { page = 1;}
-  if (page > pageCount) {
-      page = pageCount
-  }
-
   MeterData.find(
     {
       "meter_id": req.params.house_id,
@@ -119,8 +105,6 @@ router.get("/prediction/:house_id", async (req, res, next) => {
     }
   )
     .sort({ timestamp : -1 })
-    .skip(pageSize*(page-1))
-    .limit(pageSize)
     .then((data) => {
       //get forecast array
       var forecast_data     = new ts.main(ts.adapter.fromDB(data, {
@@ -142,18 +126,17 @@ router.get("/prediction/:house_id", async (req, res, next) => {
         var forecast	= 0;	// Init the value at 0.
         for (var i=0;i<coeffs.length;i++) {	// Loop through the coefficients
             forecast -= forecast_data.data[forecast_data.data.length-1-i][1]*coeffs[i];
-            
         }
         fc_results.push(forecast);
         forecast_data.data.push([new Date(),forecast]);
         
-        console.log("forecast:",fc_results);
+        if(j==forecast_batch_size-1){
+          res.status(200).json({
+            "data": fc_results 
+          });
+        }
       }
-      res.status(200).json({
-        "page": page,
-        "pageCount": pageCount,
-        "data": fc_results 
-      });
+
     
     })
     .catch((err) => res.status(500).json(err));
