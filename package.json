@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/geoox/iot-smart-meter#readme",
   "dependencies": {
+    "@tensorflow/tfjs": "^1.7.2",
+    "@tensorflow/tfjs-node": "^1.7.2",
     "atob": "^2.1.2",
     "axios": "^0.19.2",
     "base64-arraybuffer": "^0.2.0",
@@ -28,6 +30,8 @@
     "hex-to-binary": "^1.0.1",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.9.9",
-    "mqtt": "^3.0.0"
+    "mqtt": "^3.0.0",
+    "node-fetch": "^2.6.0",
+    "timeseries-analysis": "^1.0.12"
   }
 }
